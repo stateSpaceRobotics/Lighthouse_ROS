@@ -35,7 +35,7 @@ SteamVRInterface::SteamVRInterface()
     device_names[i] = device_name_string;
     //
     if (getparam(device_name_string, device_names[i])) ROS_DEBUG("Device %i name: %s",i,device_names[i]);
-    if ~(getparam(device_serial_string, device_serials[i])) break;
+    if !(getparam(device_serial_string, device_serials[i])) break;
   }
   ROS_INFO("Total loaded device strings: %i",i);
 
@@ -72,3 +72,52 @@ SteamVRInterface::connectToSteamVR(){
 
   return true;
 }
+
+/** \brief Publishes current poses of devices
+ *         Polls and publishes poses of tracked devices.
+ *
+ *  Detailed description.
+ */
+ SteamVRInterface::update(){
+   if (steamVR){
+     // Query all device poses
+     steamVR->GetDeviceToAbsoluteTrackingPose(
+       vr::TrackingUniverseRawAndUncalibrated,
+       0,
+       vr_device_poses,vr::k_unMaxTrackedDeviceCount
+     );
+
+     for(int i = 0;i<16;i++){
+       // check for no device/lighthouse
+       if ((vr::TrackedDeviceClass_Invalid == vr::GetTrackedDeviceClass(i))
+           || (vr::TrackedDeviceClass_TrackingReference == vr::GetTrackedDeviceClass(i))
+          ){
+           continue; // skip lighthouses
+       }
+
+       // Get device serial number
+       char serialNumber[vr::k_unMaxPropertyStringSize];
+       steamVR->GetStringTrackedDeviceProperty(
+         i,
+         vr::Prop_SerialNumber_String,
+         sb,
+         vr::k_unMaxPropertyStringSize
+       );
+       std::string serial(sreialNumber);
+       for(int j=0;j<16;j++){
+         // Check if at proper index
+         if (serial == device_serials[j]){
+           // Build pose and publishes
+           publish(i,j);
+           break;
+         // check if new object added
+         } else if (!device_serials[j]){
+           device_names[j] = serial;
+           publish(i,j);
+           break;
+         }
+       }
+
+     }
+   }
+ }
