@@ -18,6 +18,8 @@ public:
   void recalibrate();
 
 private:
-  std::string device_serials[16];
-  int device_index[16];
+  int hz; /// Desired publish rate for device poses.
+  std::string device_serials[16]; /// Stores serial numbers for each device.
+  int device_index[16]; /// Stores the index of each device.
+  ros::Publisher publishers[16]; /// Stores the pose publishers.
 }
