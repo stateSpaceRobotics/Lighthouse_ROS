@@ -44,5 +44,31 @@ SteamVRInterface::SteamVRInterface()
   // initialize pose publishers
   for (i=0;i<16,i++){
     publishers[0] = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(device_names[i],2);
+    ROS_DEBUG("Topic: %s",device_names[i]);
   }
+}
+
+/** \brief Connects to SteamVR
+ *         Connects to SteamVR and initializes needed variables
+ *
+ *  Connects to SteamVR as a scene application. This maintains full
+ *  functionality of the openVR api. This is allows access to the tracking api.
+ */
+SteamVRInterface::connectToSteamVR(){
+  // start with no errors encountered
+  vr::EVRInitError err = vr::VRInitError_None;
+
+  // connect to steamvr as a scene to get access to tracking
+  steamVR = vr::VR_INIT(&err,vr::VRApplication_Scene);
+
+  // error encountered
+  if (err != vr::VRInitError_None) {
+    steamVR = NULL;
+    ROS_ERROR("Failed to connect to SteamVR");
+    return false;
+  }
+
+  ROS_INFO("Connected to SteamVR");
+
+  return true;
 }

@@ -11,7 +11,7 @@ public:
   SteamVRInterface();
   ~SteamVRInterface();
 
-  bool init();
+  bool connectToSteamVR();
   void shutdown();
 
   void update();
