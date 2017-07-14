@@ -18,6 +18,8 @@ public:
   void update();
   void recalibrate();
 
+  void run();
+
 private:
   vr::TrackedDevicePose_t vr_device_poses[vr::k_unMaxTrackedDeviceCount];
   vr::IVRSystem *steamVR; /// pointer to the steamVR connection object.
@@ -29,7 +31,7 @@ private:
 
   ros::NodeHandle n;
 
-  void createMsg(uint device_index, nav_msgs::Odometry msg);
+  void createMsg(uint device_index, nav_msgs::Odometry *msg);
 
   void publish(int device_index, int pub_index);
 };

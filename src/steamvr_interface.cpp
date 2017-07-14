@@ -34,8 +34,9 @@ SteamVRInterface::SteamVRInterface() :
     // set name default
     device_names[i] = device_name_string;
     //
-    if (n.getParam(device_name_string, device_names[i])) ROS_DEBUG("Device %i name: %s",i,device_names[i].c_str());
-    if (!n.getParam(device_serial_string, device_serials[i])) break;
+    n.param(device_name_string, device_names[i]);
+    //ROS_DEBUG("Device %i name: %s",i,device_names[i].c_str(), device_names[i]);
+    n.getParam(device_serial_string, device_serials[i]);
   }
   ROS_INFO("Total loaded device strings: %i",i);
 
@@ -59,18 +60,44 @@ bool SteamVRInterface::connectToSteamVR(){
   vr::EVRInitError err = vr::VRInitError_None;
 
   // connect to steamvr as a scene to get access to tracking
-  steamVR = vr::VR_Init(&err,vr::VRApplication_Scene);
+  steamVR = vr::VR_Init(&err,vr::VRApplication_Background);
 
   // error encountered
-  if (err != vr::VRInitError_None) {
-    steamVR = NULL;
-    ROS_ERROR("Failed to connect to SteamVR");
-    return false;
-  }
-
+  //if (err != vr::VRInitError_None) {
+  //  steamVR = NULL;
+    ROS_ERROR("Failed to connect to SteamVR: ERROR %i",err);
+   // return false;
+  //}
+  ROS_INFO("%i",steamVR);
   ROS_INFO("Connected to SteamVR");
 
   return true;
+}
+
+/** \brief Runs main ROS loop
+ *         Publishes device odometry at preset rate.
+ *
+ *  Detailed description.
+ */
+void SteamVRInterface::run(){
+  ros::Rate rate(hz);
+  while(ros::ok()){
+    update();
+    rate.sleep();
+  }
+}
+
+/** \brief Severs the SteamVR link
+ *         Safely shuts down the SteamVR link.
+ *
+ *  Detailed description.
+ */
+void SteamVRInterface::shutdown(){
+  ROS_INFO("Shutting down SteamVRInterface.");
+  if (steamVR){
+  vr::VR_Shutdown();
+  steamVR = NULL;
+  }
 }
 
 /** \brief Updates current poses of devices
@@ -91,6 +118,7 @@ bool SteamVRInterface::connectToSteamVR(){
        // check for no device/lighthouse
        if ((vr::TrackedDeviceClass_Invalid == steamVR->GetTrackedDeviceClass(i))
            || (vr::TrackedDeviceClass_TrackingReference == steamVR->GetTrackedDeviceClass(i))
+           || (vr::TrackedDeviceClass_HMD == steamVR->GetTrackedDeviceClass(i))
           ){
            continue; // skip lighthouses
        }
@@ -131,12 +159,13 @@ bool SteamVRInterface::connectToSteamVR(){
 void SteamVRInterface::publish(int device_index, int pub_index){
     if (vr_device_poses[device_index].bPoseIsValid){
       nav_msgs::Odometry odometry_msg;
-      createMsg(device_index, odometry_msg);
+      createMsg(device_index, &odometry_msg);
       odometry_msg.header.stamp = ros::Time::now();
       odometry_msg.header.frame_id = "odom";
       odometry_msg.child_frame_id = publishers[pub_index].getTopic();
+      odometry_msg.child_frame_id.erase(0,1);
       publishers[pub_index].publish(odometry_msg);
-    } else ROS_ERROR("Invalid pose for device: %s!", "name");
+    } else ROS_ERROR("Invalid pose for device: %s", "name");
   }
 
   /** \brief Publishes current poses of devices
@@ -144,45 +173,60 @@ void SteamVRInterface::publish(int device_index, int pub_index){
    *
    *  Detailed description.
    */
-void   SteamVRInterface::createMsg(uint device_index, nav_msgs::Odometry msg){
+void   SteamVRInterface::createMsg(uint device_index, nav_msgs::Odometry *msg){
      // quaternion
      vr::HmdMatrix34_t mat = vr_device_poses[device_index].mDeviceToAbsoluteTracking;
-     msg.pose.pose.orientation.w = sqrt(fmax(0, 1+mat.m[0][0]+mat.m[1][1]+mat.m[2][2]))/2;
-     msg.pose.pose.orientation.x = sqrt(fmax(0, 1+mat.m[0][0]-mat.m[1][1]-mat.m[2][2]))/2;
-     msg.pose.pose.orientation.y = sqrt(fmax(0, 1-mat.m[0][0]+mat.m[1][1]-mat.m[2][2]))/2;
-     msg.pose.pose.orientation.z = sqrt(fmax(0, 1-mat.m[0][0]-mat.m[1][1]+mat.m[2][2]))/2;
-     msg.pose.pose.orientation.x = copysign(msg.pose.pose.orientation.x, mat.m[2][1]-mat.m[1][2]);
-     msg.pose.pose.orientation.y = copysign(msg.pose.pose.orientation.y, mat.m[0][2]-mat.m[2][0]);
-     msg.pose.pose.orientation.z = copysign(msg.pose.pose.orientation.z, mat.m[1][0]-mat.m[0][1]);
+     msg->pose.pose.orientation.w = sqrt(fmax(0, 1+mat.m[0][0]+mat.m[1][1]+mat.m[2][2]))/2;
+     msg->pose.pose.orientation.x = sqrt(fmax(0, 1+mat.m[0][0]-mat.m[1][1]-mat.m[2][2]))/2;
+     msg->pose.pose.orientation.y = sqrt(fmax(0, 1-mat.m[0][0]+mat.m[1][1]-mat.m[2][2]))/2;
+     msg->pose.pose.orientation.z = sqrt(fmax(0, 1-mat.m[0][0]-mat.m[1][1]+mat.m[2][2]))/2;
+     msg->pose.pose.orientation.x = copysign(msg->pose.pose.orientation.x, mat.m[2][1]-mat.m[1][2]);
+     msg->pose.pose.orientation.y = copysign(msg->pose.pose.orientation.y, mat.m[0][2]-mat.m[2][0]);
+     msg->pose.pose.orientation.z = copysign(msg->pose.pose.orientation.z, mat.m[1][0]-mat.m[0][1]);
 
      // coordinates
-     msg.pose.pose.position.x = mat.m[0][3];
-     msg.pose.pose.position.y = mat.m[1][3];
-     msg.pose.pose.position.z = mat.m[2][3];
+     msg->pose.pose.position.x = mat.m[0][3];
+     msg->pose.pose.position.y = mat.m[1][3];
+     msg->pose.pose.position.z = mat.m[2][3];
 
      // covariance
-     msg.pose.covariance[0] = -1;
+     msg->pose.covariance[0] = -1;
 
      // linear velocity
-     msg.twist.twist.linear.x = vr_device_poses[device_index].vVelocity.v[0];
-     msg.twist.twist.linear.y = vr_device_poses[device_index].vVelocity.v[1];
-     msg.twist.twist.linear.z = vr_device_poses[device_index].vVelocity.v[2];
+     msg->twist.twist.linear.x = vr_device_poses[device_index].vVelocity.v[0];
+     msg->twist.twist.linear.y = vr_device_poses[device_index].vVelocity.v[1];
+     msg->twist.twist.linear.z = vr_device_poses[device_index].vVelocity.v[2];
 
      // angular angular velocity
-     msg.twist.twist.angular.x = vr_device_poses[device_index].vAngularVelocity.v[0];
-     msg.twist.twist.angular.y = vr_device_poses[device_index].vAngularVelocity.v[1];
-     msg.twist.twist.angular.z = vr_device_poses[device_index].vAngularVelocity.v[2];
+     msg->twist.twist.angular.x = vr_device_poses[device_index].vAngularVelocity.v[0];
+     msg->twist.twist.angular.y = vr_device_poses[device_index].vAngularVelocity.v[1];
+     msg->twist.twist.angular.z = vr_device_poses[device_index].vAngularVelocity.v[2];
 
      // covariance
-     msg.twist.covariance[0] = -1;
+     msg->twist.covariance[0] = -1;
 
    }
+
+/** \brief Deconstructor method
+ *         
+ *
+ *  Detailed description.
+ */
+SteamVRInterface::~SteamVRInterface(){
+  ROS_INFO("Shutting down...");
+  // ROS shutting down, so shutdown SteamVR link
+  shutdown();
+  return;
+}
 
 // Main
 int main(int argc, char** argv){
   ros::init(argc, argv, "steamvr_interface");
 
-  SteamVRInterface node();
+  SteamVRInterface node;
+
+  // If it can connect to SteamVR
+  if (node.connectToSteamVR()) node.run();
 
   return 0;
 }
