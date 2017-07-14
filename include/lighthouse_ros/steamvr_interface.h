@@ -3,7 +3,8 @@
 
 #include <openvr.h>
 
-#include <ros.h>
+#include "ros/ros.h"
+#include "nav_msgs/Odometry.h"
 
 class SteamVRInterface
 {
@@ -26,7 +27,11 @@ private:
   int device_index[16]; /// Stores the index of each device.
   ros::Publisher publishers[16]; /// Stores the pose publishers.
 
-  void createMsg(uint device_index, geometry_msgs::PoseWithCovarianceStamped msg);
+  ros::NodeHandle n;
+
+  void createMsg(uint device_index, nav_msgs::Odometry msg);
 
   void publish(int device_index, int pub_index);
-}
+};
+
+#endif
