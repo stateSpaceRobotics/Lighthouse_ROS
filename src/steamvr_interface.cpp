@@ -63,11 +63,11 @@ bool SteamVRInterface::connectToSteamVR(){
   steamVR = vr::VR_Init(&err,vr::VRApplication_Background);
 
   // error encountered
-  //if (err != vr::VRInitError_None) {
-  //  steamVR = NULL;
+  if (err != vr::VRInitError_None) {
+    steamVR = NULL;
     ROS_ERROR("Failed to connect to SteamVR: ERROR %i",err);
-   // return false;
-  //}
+    return false;
+  }
   ROS_INFO("%i",steamVR);
   ROS_INFO("Connected to SteamVR");
 
