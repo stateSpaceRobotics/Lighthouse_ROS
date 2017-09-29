@@ -44,8 +44,8 @@ SteamVRInterface::SteamVRInterface() :
   // initialize topics
   // initialize pose publishers
   for (i=0;i<16;i++){
-    publishers[0] = n.advertise<nav_msgs::Odometry>(device_names[i],2);
-    ROS_DEBUG("Topic: %s",device_names[i].c_str());
+    publishers[i] = n.advertise<nav_msgs::Odometry>(device_names[i],2);
+    ROS_INFO("Topic: %s",device_names[i].c_str());
   }
 }
 
@@ -208,7 +208,7 @@ void   SteamVRInterface::createMsg(uint device_index, nav_msgs::Odometry *msg){
    }
 
 /** \brief Deconstructor method
- *         
+ *
  *
  *  Detailed description.
  */
