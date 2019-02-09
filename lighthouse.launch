@@ -1,0 +1,7 @@
+<launch>
+	<!-- command to run: roslaunch lighthouse_ros lighthouse.launch home:=$HOME -->
+	<arg name = "home" />
+	<node name="steamvr_interface_node" pkg="lighthouse_ros" type="steamvr_interface_node" launch-prefix="$(arg home)/.steam/ubuntu12_32/steam-runtime/run.sh" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="static_tf_broadcaster_base" args="0 0 0 0.500 -0.500 -0.500 0.500 base_link vive_base" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="static_tf_broadcaster" args="0.0254 0.1905 -0.0635 0 0 0 1 base_link base_footprint" />
+</launch>

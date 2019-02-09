@@ -57,7 +57,7 @@ roscore
 2. lighthouse_ros should be kicked off with Steam runtime. You can do so with this command:
 
 ```bash
-~/.steam/steam/ubuntu12_32/steam-runtime/run.sh <path_to_catkin_workspace>/devel/lib/lighthouse_ros/steamvr_interface_node
+~/.steam/ubuntu12_32/steam-runtime/run.sh <path_to_catkin_workspace>/devel/lib/lighthouse_ros/steamvr_interface_node
 ```
 
 3. At this point, if you have a base station and tracker set up correctly, you should be able to start looking at pose data. You can verify that a single tracker works with the following command: 
