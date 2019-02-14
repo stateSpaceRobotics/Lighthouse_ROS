@@ -169,7 +169,7 @@ void SteamVRInterface::publish(int device_index, int pub_index)
         nav_msgs::Odometry odometry_msg;
         createMsg(device_index, &odometry_msg);
         odometry_msg.header.stamp = ros::Time::now();
-        odometry_msg.header.frame_id = "odom";
+        odometry_msg.header.frame_id = "lighthouse_01";
         odometry_msg.child_frame_id = publishers[pub_index].getTopic();
         odometry_msg.child_frame_id.erase(0, 1);
         publishers[pub_index].publish(odometry_msg);
@@ -216,7 +216,7 @@ void SteamVRInterface::createMsg(uint device_index, nav_msgs::Odometry *msg)
     // covariance
     // msg->twist.covariance = this->covariance;
 
-    for (int i = 0; i < sizeof(this->covariance); i++)
+    for (int i = 0; i < sizeof(this->covariance)/sizeof(this->covariance[0]); i++)
     {
         msg->pose.covariance[i] = this->covariance[i];
         msg->twist.covariance[i] = this->covariance[i];
